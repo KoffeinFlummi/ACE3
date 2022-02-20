@@ -35,7 +35,10 @@ TRACE_1("Starting Wind Info PFEH", GVAR(WindInfo));
     disableSerialization;
     params ["", "_pfID"];
 
-    if ((!GVAR(WindInfo)) || {!([ACE_player, ACE_player, []] call EFUNC(common,canInteractWith))}) exitWith {
+    if (
+        (!GVAR(WindInfo)) ||
+        {!([ACE_player, ACE_player, ["notOnMap", "isNotInside", "isNotSitting", "isNotSwimming"]] call EFUNC(common,canInteractWith))}
+    ) exitWith {
         TRACE_1("Ending Wind Info PFEH", GVAR(WindInfo));
         GVAR(WindInfo) = false;
         (["RscWindIntuitive"] call BIS_fnc_rscLayer) cutText ["", "PLAIN"];
@@ -45,14 +48,9 @@ TRACE_1("Starting Wind Info PFEH", GVAR(WindInfo));
     //Keeps the display open:
     (["RscWindIntuitive"] call BIS_fnc_rscLayer) cutRsc ["RscWindIntuitive", "PLAIN", 1, false];
 
-    private _windSpeed = if (missionNamespace getVariable [QEGVAR(advanced_ballistics,enabled), false]) then {
-        // With wind gradient
-        [eyePos ACE_player, true, true, true] call FUNC(calculateWindSpeed);
-    } else {
-        // Without wind gradient
-        [eyePos ACE_player, false, true, true] call FUNC(calculateWindSpeed);
-    };
+    private _isUsingChute = (vehicle ACE_player) isKindOf "ParachuteBase";
 
+    private _windSpeed = [eyePos ACE_player, (missionNamespace getVariable [QEGVAR(advanced_ballistics,enabled), false]), true, !_isUsingChute] call FUNC(calculateWindSpeed);
 
     private _playerDir = (ACE_player call CBA_fnc_headDir) select 0;
     private _windDir = (wind select 0) atan2 (wind select 1);
@@ -84,6 +82,10 @@ TRACE_1("Starting Wind Info PFEH", GVAR(WindInfo));
         __ctrl ctrlSetText QPATHTOF(UI\wind_noneCircle_ca.paa);
     };
     __ctrl ctrlCommit 0;
+
+    if (_isUsingChute) exitWith {
+        TRACE_1("using parachute - skipping speed info",_isUsingChute);
+    };
 
     //Update the beaufort balls:
     (ctrlPosition __ctrl) params ["_ctrlX", "_ctrlY", "_ctrlWidth", "_ctrlHeight"];
