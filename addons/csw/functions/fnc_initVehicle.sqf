@@ -50,7 +50,7 @@ if (_vehicle turretLocal [0]) then {
 
         [_vehicle, [0], _assemblyMode, _emptyWeapon] call FUNC(proxyWeapon);
 
-        if (!_assemblyMode) exitWith {};
+        if !(_assemblyMode && {GVAR(ammoHandling) > 0}) exitWith {};
 
         [_vehicle, _emptyWeapon] call FUNC(staticWeaponInit_unloadExtraMags);
     };
@@ -77,8 +77,8 @@ if (hasInterface && {!(_typeOf in GVAR(initializedStaticTypes))}) then {
     private _ammoActionPath = [];
     private _magazineLocation = getText (_configOf >> QUOTE(ADDON) >> "magazineLocation");
     private _condition = { //IGNORE_PRIVATE_WARNING ["_target", "_player"];
-        // If magazine handling is enabled or weapon assembly/disassembly is enabled we enable ammo handling
-        if ((GVAR(ammoHandling) == 0) && {!([false, true, true, GVAR(defaultAssemblyMode)] select (_target getVariable [QGVAR(assemblyMode), 3]))}) exitWith { false };
+        // If magazine handling and weapon assembly/disassembly are enabled we enable ammo handling
+        if ((GVAR(ammoHandling) == 0) || {!([false, true, true, GVAR(defaultAssemblyMode)] select (_target getVariable [QGVAR(assemblyMode), 3]))}) exitWith { false };
         [_player, _target, ["isNotSwimming", "isNotSitting"]] call EFUNC(common,canInteractWith)
     };
     private _childrenCode = {
@@ -96,7 +96,11 @@ if (hasInterface && {!(_typeOf in GVAR(initializedStaticTypes))}) then {
         _ammoActionPath = [_typeOf, 0, ["ACE_MainActions"], _ammoAction] call EFUNC(interact_menu,addActionToClass);
     };
 
-    if (["ace_reload"] call EFUNC(common,isModLoaded)) then {
+    if (
+        ["ace_reload"] call EFUNC(common,isModLoaded) &&
+        {GVAR(ammoHandling) isNotEqualTo 0} &&
+        {([false, true, true, GVAR(defaultAssemblyMode)] select (_vehicle getVariable [QGVAR(assemblyMode), 3]))}
+    ) then {
         // move reload's check ammo action to the ammo handling point (remove and re-add)
         [_typeOf, 0, ["ACE_MainActions", QEGVAR(reload,CheckAmmo)]] call EFUNC(interact_menu,removeActionFromClass);
         private _checkAmmoAction = [QGVAR(checkAmmo), LELSTRING(reload,checkAmmo), "", EFUNC(reload,checkAmmo), EFUNC(reload,canCheckAmmo)] call EFUNC(interact_menu,createAction);
